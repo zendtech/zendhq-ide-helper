@@ -1,0 +1,17 @@
+{
+    "name": "zendtech/zendhq-ide-helper",
+    "description": "Provides class stubs for ZendHQ classes to help with IDE completion when the ZendHQ extension is not installed",
+    "license": "BSD-3-Clause",
+    "keywords": [
+        "dev",
+        "zendhq"
+    ],
+    "require": {
+        "php": "^7.2.0 || ~8.0.0 || ~8.1.0 || ~8.2.0"
+    },
+    "autoload": {
+        "files": [
+            "src/include.php"
+        ]
+    }
+}

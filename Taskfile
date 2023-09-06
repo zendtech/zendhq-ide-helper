@@ -1,0 +1,141 @@
+#!/bin/bash
+# This is a Taskfile
+# (https://medium.com/@adrian_cooney/introducing-the-taskfile-5ddfe7ed83bd)
+#
+# It is a plain-old-bashfile, with a few helper functions.
+# Each task should be a single function.
+# Tasks that have dependencies can call the other functions as part of their
+# work; you can also create meta-tasks that simply call other tasks.
+#
+# To provide detailed help for a given task, write a function named {task}_help.
+#
+# Functions prefixed with tf_ or suffixed with _help will be omitted from help listings.
+
+set -e 
+
+## Color functions
+## Usage: {color} "arguments" "go" "here"
+## Use these to add color to your output.
+tf_print_in_color() {
+  local color="$1"
+  shift
+  if [[ -z ${NO_COLOR+x} ]]; then
+    printf "$color%b\e[0m\n" "$*";
+  else
+    printf "%b\n" "$*";
+  fi
+}
+
+tf_red() { tf_print_in_color "\e[31m" "$*"; }
+tf_green() { tf_print_in_color "\e[32m" "$*"; }
+tf_yellow() { tf_print_in_color "\e[33m" "$*"; }
+tf_blue() { tf_print_in_color "\e[34m" "$*"; }
+tf_magenta() { tf_print_in_color "\e[35m" "$*"; }
+tf_cyan() { tf_print_in_color "\e[36m" "$*"; }
+tf_bold() { tf_print_in_color "\e[1m" "$*"; }
+tf_underlined() { tf_print_in_color "\e[4m" "$*"; }
+tf_red_bold() { tf_print_in_color "\e[1;31m" "$*"; }
+tf_green_bold() { tf_print_in_color "\e[1;32m" "$*"; }
+tf_yellow_bold() { tf_print_in_color "\e[1;33m" "$*"; }
+tf_blue_bold() { tf_print_in_color "\e[1;34m" "$*"; }
+tf_magenta_bold() { tf_print_in_color "\e[1;35m" "$*"; }
+tf_cyan_bold() { tf_print_in_color "\e[1;36m" "$*"; }
+tf_red_underlined() { tf_print_in_color "\e[4;31m" "$*"; }
+tf_green_underlined() { tf_print_in_color "\e[4;32m" "$*"; }
+tf_yellow_underlined() { tf_print_in_color "\e[4;33m" "$*"; }
+tf_blue_underlined() { tf_print_in_color "\e[4;34m" "$*"; }
+tf_magenta_underlined() { tf_print_in_color "\e[4;35m" "$*"; }
+tf_cyan_underlined() { tf_print_in_color "\e[4;36m" "$*"; }
+
+## Help function
+function help {
+    if [[ $# -gt 0 ]]; then
+        if [[ "$(LC_ALL=C type -t "$1_help")" == "function" ]]; then
+            "$1_help"
+        else
+            tf_blue "No additional help found for task '$1'"
+        fi
+    else
+        tf_green "Usage:"
+        echo "  $0 <task> <args>"
+        echo
+        tf_green "Available Tasks:"
+        compgen -A function | cat -n | grep -v -P "^\s+\d+\s+tf_" | grep -v -P "_help\$" | sed -r -e "s/^[[:space:]]+[[:digit:]]+[[:space:]]+/  /"
+        echo
+        tf_green "Run '$0 help {task}' to get help on a given task"
+    fi
+}
+
+## Task functions
+
+# Helper function - implode
+# - First argument is string to use when imploding
+# - All remaining arguments are the values to implode
+# - Specify an array using "${array[@]}" as a second argument
+function tf_implode {
+    local d=${1-} f=${2-}
+    if shift 2; then
+        printf %s "$f" "${@/#/$d}"
+    fi
+}
+
+function stubs {
+    local tmp
+    local stub
+
+    if [[ -z "${GH_TOKEN}" ]]; then
+        tf_red "Missing GH_TOKEN; please provide it in your env or as part of your command line invocation"
+        exit 1
+    fi
+
+    if ! command -v git; then
+        tf_red "The 'git' command is required to use this task."
+        exit 1
+    fi
+
+    tmp="$(mktemp -d)"
+
+    tf_cyan "Cloning zendhq repo"
+    git clone "https://oauth2:${GH_TOKEN}@github.com/perforce-zend/zendhq.git" "${tmp}/zendhq"
+
+    tf_cyan "Isolating stubs"
+    mkdir -p "${tmp}/stubs"
+    printf "<?php" > "${tmp}/stubs/stubs.php"
+    for stub in "${tmp}"/zendhq/src/zendphp/ext/zendhq/jq/8.2/*.stub.php; do
+        sed -E '/<\?php/d' < "${stub}" >> "${tmp}/stubs/stubs.php"
+    done
+
+    # @todo Update stubs such that:
+    #     - JobQueue constructor argument has a default argument
+    #     - Annotations are added for the JobOptions and QueueDefinition classes
+    #       to detail the priority/output capture allowed values
+
+    tf_cyan "Copying stubs to package"
+    cp -a "${tmp}/stubs/stubs.php" "src/"
+
+    tf_cyan "Cleanup"
+    rm -rf "${tmp}"
+
+    tf_green "[DONE]"
+}
+
+function stubs_help {
+    tf_green "stubs"
+    echo "  Retrieve JQ PHP API stub files, prepare them for use, and copy them"
+    echo "  into the applications."
+    echo ""
+    echo "  This command requires the GH_TOKEN env be present. it will be used"
+    echo "  to seed the oauth2 token for cloning from Zend by Perforce's zendhq repository."
+    echo "  It should only be run by maintainers."
+}
+
+## Default task
+## Change this to call a different task by default
+function tf_default {
+    help "$@"
+}
+
+# Switch to the directory containing the Taskfile
+cd "$(dirname "$(realpath "$0")")"
+
+"${@:-tf_default}"
