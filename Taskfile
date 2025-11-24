@@ -101,7 +101,7 @@ function stubs {
     tf_cyan "Isolating stubs"
     mkdir -p "${tmp}/stubs"
     printf "<?php" > "${tmp}/stubs/stubs.php"
-    for stub in "${tmp}"/zendhq/src/zendphp/ext/zendhq/jq/8.2/*.stub.php; do
+    for stub in "${tmp}"/zendhq/src/zendphp/ext/zendhq/jq/php/*.stub.php; do
         sed -E '/<\?php/d' < "${stub}" >> "${tmp}/stubs/stubs.php"
     done
 

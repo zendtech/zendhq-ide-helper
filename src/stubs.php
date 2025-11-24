@@ -1,5 +1,6 @@
 <?php
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -44,7 +45,7 @@ namespace ZendHQ\JobQueue {
          *
          * Unsets the name of the job if $name is null or an empty string
          */
-        public function setName(?string $name = null): CLIJob {}
+        public function setName(?string $name = null): JobDefinition {}
 
         /**
          * Adds environment variables to the CLI job.
@@ -78,6 +79,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue\Exception {
 
@@ -124,6 +126,7 @@ namespace ZendHQ\JobQueue\Exception {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -208,7 +211,7 @@ namespace ZendHQ\JobQueue {
          *
          * Unsets the name of the job if $name is null or an empty string
          */
-        public function setName(?string $name = null): HTTPJob {}
+        public function setName(?string $name = null): JobDefinition {}
 
         /**
          * Sets the URL of the HTTP request
@@ -322,6 +325,13 @@ namespace ZendHQ\JobQueue {
         public function getHeaders(): array {}
 
         /**
+         * Returns all the configured HTTP query string arguments.
+         *
+         * @return array<string, string> Associative array of key => value pairs, unencoded
+         */
+         public function getQueryStringArguments(): array {}
+
+        /**
          * Returns the encoded HTTP request body.
          *
          * @return string|null The encoded HTTP request body
@@ -338,6 +348,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -366,6 +377,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -401,6 +413,55 @@ namespace ZendHQ\JobQueue {
         public const PRIORITY_URGENT = UNKNOWN;
 
         /**
+         * Default retry delay algorithm with a fixed delay.
+         *
+         * @var int
+         * @cvalue int(::JQ::Job::RetryDelayAlgo::FIXED_DELAY)
+         */
+        public const RETRY_DELAY_FIXED = UNKNOWN;
+
+        /**
+         * Linear backoff retry delay algorithm using the formula
+         *
+         * $delay = $base_delay * $attempt
+         *
+         * @var int
+         * @cvalue int(::JQ::Job::RetryDelayAlgo::LINEAR_BACKOFF)
+         */
+        public const RETRY_DELAY_LINEAR_BACKOFF = UNKNOWN;
+
+        /**
+         * Exponential backoff retry delay algorithm using the formula
+         *
+         * $delay = $base_delay * pow(2, $attempt - 1)
+         *
+         * @var int
+         * @cvalue int(::JQ::Job::RetryDelayAlgo::EXPONENTIAL_BACKOFF)
+         */
+        public const RETRY_DELAY_EXPONENTIAL_BACKOFF = UNKNOWN;
+
+        /**
+         * Exponential backoff with jitter retry delay algorithm using the formula
+         *
+         * $delay = ($base_delay * pow(2, $attempt - 1)) / 2 +
+         *          rand(0, ($base_delay * pow(2, $attempt - 1)) / 2)
+         *
+         * @var int
+         * @cvalue int(::JQ::Job::RetryDelayAlgo::EXPONENTIAL_JITTER)
+         */
+        public const RETRY_DELAY_EXPONENTIAL_JITTER = UNKNOWN;
+
+        /**
+         * Decorrelated jitter retry delay algorithm (AWS strategy) using the formula
+         *
+         * $delay = rand($base_delay, $previous_delay * 3)
+         *
+         * @var int
+         * @cvalue int(::JQ::Job::RetryDelayAlgo::DECORRELATED_JITTER)
+         */
+        public const RETRY_DELAY_DECORRELATED_JITTER = UNKNOWN;
+
+        /**
          * Do not persist job output.
          *
          * @var int
@@ -420,7 +481,7 @@ namespace ZendHQ\JobQueue {
          * Persist job output when failed.
          *
          * @var int
-         * @cvalue int(::JQ::Job::PersistOutput::ERROR)
+         * @cvalue int(::JQ::Job::PersistOutput::JQ_ERROR)
          */
         public const PERSIST_OUTPUT_ERROR = UNKNOWN;
 
@@ -430,9 +491,11 @@ namespace ZendHQ\JobQueue {
          * @param int|null $priority Priority of the job
          * @param int|null $timeout Job timeout in seconds
          * @param int|null $allowedRetries Number of allowed retries
-         * @param int|null $retryWaitTime Wait time in seconds between retries
+         * @param int|null $retryWaitTime Base wait time in seconds between retries
          * @param int|null $persistOutput Persist job output option
          * @param bool|null $validateSsl Validate SSL option for HTTP jobs
+         * @param int|null $retryAlgorithm Strategy for wait time calculation between retries
+         * @param int|null $maxRetryWaitTime Maximum wait time in seconds between retries
          *
          * @throws InvalidArgument if:
          *   a) $priority value is not valid
@@ -440,6 +503,8 @@ namespace ZendHQ\JobQueue {
          *   c) $allowedRetries < 0
          *   d) $retryWaitTime < 0 or $retryWaitTime > 2147483
          *   e) $persistOutput value is not valid
+         *   f) $retryAlgorithm value is not valid
+         *   g) $maxRetryWaitTime <= 0 or $maxRetryWaitTime > 2147483
          *
          * Default job options from the queue are used for any job option values
          * that are null.
@@ -450,7 +515,9 @@ namespace ZendHQ\JobQueue {
             ?int $allowedRetries = null,
             ?int $retryWaitTime = null,
             ?int $persistOutput = null,
-            ?bool $validateSsl = null
+            ?bool $validateSsl = null,
+            ?int $retryAlgorithm = null,
+            ?int $maxRetryWaitTime = null
         ) {}
 
         /**
@@ -480,6 +547,20 @@ namespace ZendHQ\JobQueue {
          * @return int|null Wait time in seconds
          */
         public function getRetryWaitTime(): ?int {}
+
+        /**
+         * Returns the maxiumum wait time in seconds between retries.
+         *
+         * @return int|null Maximum wait time in seconds
+         */
+        public function getMaxRetryWaitTime(): ?int {}
+
+        /**
+         * Returns the algorithm used to calculate the wait time between retries.
+         *
+         * @return int|null Retry algorithm
+         */
+        public function getRetryAlgorithm(): ?int {}
 
         /**
          * Returns the persist job output option value.
@@ -544,6 +625,30 @@ namespace ZendHQ\JobQueue {
         public function setRetryWaitTime(int $seconds): JobOptions {}
 
         /**
+         * Sets the maxiumum wait time in seconds between retries.
+         *
+         * @param int $seconds Maximum wait time
+         *
+         * @return JobOptions self
+         *
+         * @throws InvalidArgument if:
+         *   a) $seconds <= 0 or $seconds > 2147483
+         */
+        public function setMaxRetryWaitTime(int $seconds): JobOptions {}
+
+        /**
+         * Sets the retry algorithm used to calculate the wait time between retries.
+         *
+         * @param int $algorithm Retry algorithm
+         *
+         * @return JobOptions self
+         *
+         * @throws InvalidArgument if:
+         *   a) the $algorithm value is invalid
+         */
+        public function setRetryAlgorithm(int $algorithm): JobOptions {}
+
+        /**
          * Sets the persist job output option.
          *
          * @param int $persist The persist job output value
@@ -569,6 +674,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -717,6 +823,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -907,6 +1014,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -996,6 +1104,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -1155,7 +1264,7 @@ namespace ZendHQ\JobQueue {
          * @param JobDefinition $job The definition of the job
          * @param Schedule $schedule Optional execution schedule of the job
          * @param JobOptions $jobOptions Optional options for the job
-         * 
+         *
          * @return Job The scheduled job
          *
          * @throws NotInitialized if
@@ -1205,6 +1314,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -1223,6 +1333,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
@@ -1240,6 +1351,7 @@ namespace ZendHQ\JobQueue {
 }
 
 /** @generate-class-entries */
+/** @generate-legacy-arginfo */
 
 namespace ZendHQ\JobQueue {
 
